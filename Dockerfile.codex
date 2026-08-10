@@ -1,0 +1,63 @@
+FROM node:24-slim
+
+ARG GIT_DELTA_VERSION=0.18.2
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	git \
+	gnupg \
+	ca-certificates \
+	curl \
+	fzf \
+	less \
+	procps \
+	unzip \
+	vim \
+	jq \
+	man-db \
+	gosu \
+	iptables \
+	ipset \
+	iproute2 \
+	dnsutils \
+	aggregate \
+	bubblewrap \
+	&& install -d -m 0755 /etc/apt/keyrings \
+	&& curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+	&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
+	&& apt-get update && apt-get install -y --no-install-recommends gh \
+	&& rm -rf /var/lib/apt/lists/*
+
+# git-delta isn't packaged for Debian until trixie; grab the upstream .deb instead.
+RUN ARCH=$(dpkg --print-architecture) \
+	&& curl -fsSLO "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" \
+	&& dpkg -i "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" \
+	&& rm "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb"
+
+RUN npm install -g @openai/codex
+
+ENV CODEX_HOME=/home/node/.codex
+
+ENV NPM_CONFIG_CACHE=/tmp/.npm-cache
+ENV NPM_CONFIG_PREFIX=/tmp/.npm-global
+ENV PATH=/tmp/.npm-global/bin:$PATH
+
+RUN mkdir -p /home/node/.codex \
+	&& mkdir -p /tmp/.npm-cache /tmp/.npm-global \
+  	&& chmod 1777 /tmp/.npm-cache /tmp/.npm-global \
+	&& mkdir -p /workspaces \
+	&& chown -R node:node /home/node/.codex /workspaces \
+	&& git config --system core.pager delta \
+	&& git config --system interactive.diffFilter "delta --color-only" \
+	&& git config --system delta.navigate true \
+	&& printf '\n[ -f /usr/share/doc/fzf/examples/key-bindings.bash ] && source /usr/share/doc/fzf/examples/key-bindings.bash\n[ -f /usr/share/doc/fzf/examples/completion.bash ] && source /usr/share/doc/fzf/examples/completion.bash\n' >> /etc/bash.bashrc
+
+# Outbound firewall: allowlist covers what Codex CLI itself needs.
+# Extend at runtime with EXTRA_ALLOWED_DOMAINS if your workflow needs more
+# (e.g. if ChatGPT-account login hits domains not listed here).
+ENV ALLOWED_DOMAINS="registry.npmjs.org api.openai.com chatgpt.com auth.openai.com cdn.openai.com sentry.io github.com api.github.com objects.githubusercontent.com raw.githubusercontent.com"
+COPY docker/init-firewall.sh /usr/local/bin/init-firewall.sh
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/init-firewall.sh /usr/local/bin/entrypoint.sh
+
+WORKDIR /workspaces
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
