@@ -47,6 +47,12 @@ args=(
 	--workdir "/workspaces/$project_dir"
 )
 
+if [ "$CONTAINER_ENGINE" = "podman" ]; then
+	if [ "$("$CONTAINER_ENGINE" info --format '{{.Host.Security.Rootless}}' 2>/dev/null)" = "true" ]; then
+		args+=(--userns=keep-id --user root:root)
+	fi
+fi
+
 if [ -n "$OPENAI_API_KEY" ]; then
 	args+=(--env OPENAI_API_KEY="$OPENAI_API_KEY")
 fi

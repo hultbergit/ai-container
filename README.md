@@ -11,13 +11,13 @@ Supported:
 
 ### Claude Code
 
-This repo includes `Dockerfile.claude`, which installs the `@anthropic-ai/claude-code` CLI on top of `node:24-slim`, plus common tools (`git`, `vim`, `unzip`, `jq`, etc.) and PHP 8.4. Build the image:
+This repo includes `Containerfile.claude`, which installs the `@anthropic-ai/claude-code` CLI on top of `node:24-slim`, plus common tools (`git`, `vim`, `unzip`, `jq`, etc.) and PHP 8.4. Build the image:
 
 ```shell
-$ docker build -t claude-code:latest -f Dockerfile.claude .
+$ docker build -t claude-code:latest -f Containerfile.claude .
 ```
 
-Alternatively, Anthropic maintains their own Dockerfile for Claude Code, used for their VS Code extension. Clone `git@github.com:anthropics/claude-code.git`, enter the `.devcontainer` directory, and build from there instead if you'd rather track theirs directly (it also adds zsh and other niceties not included here):
+Alternatively, Anthropic maintains their own Containerfile for Claude Code, used for their VS Code extension. Clone `git@github.com:anthropics/claude-code.git`, enter the `.devcontainer` directory, and build from there instead if you'd rather track theirs directly (it also adds zsh and other niceties not included here):
 
 ```shell
 $ docker build -t claude-code:latest .
@@ -68,10 +68,10 @@ To add a new environment with these already in place, run the same commands once
 
 ### Codex CLI
 
-This repo includes `Dockerfile.codex`, which installs the `@openai/codex` CLI on top of `node:24-slim`. Build the image:
+This repo includes `Containerfile.codex`, which installs the `@openai/codex` CLI on top of `node:24-slim`. Build the image:
 
 ```shell
-$ docker build -t codex:latest -f Dockerfile.codex .
+$ docker build -t codex:latest -f Containerfile.codex .
 ```
 
 Then add the script `codex-container.sh` into your `$PATH`, the same way as `claude-container.sh`. It supports the same `CONTAINER_ENGINE` env variable and per-environment directories.
