@@ -57,6 +57,13 @@ if [ -n "$OPENAI_API_KEY" ]; then
 	args+=(--env OPENAI_API_KEY="$OPENAI_API_KEY")
 fi
 
+# Escape hatch for callers that need extra engine flags (extra hosts, a shared
+# network, additional mounts) without this script knowing about their project.
+if [ -n "$CONTAINER_EXTRA_ARGS" ]; then
+	read -ra container_extra_args <<<"$CONTAINER_EXTRA_ARGS"
+	args+=("${container_extra_args[@]}")
+fi
+
 if [ -n "$SKIP_FIREWALL" ]; then
 	args+=(--env SKIP_FIREWALL="$SKIP_FIREWALL")
 fi
