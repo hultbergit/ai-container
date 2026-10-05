@@ -79,11 +79,31 @@ Then add the script `codex-container.sh` into your `$PATH`, the same way as `cla
 ```bash
 codex-work() {
     CONTAINER_ENGINE=docker \
-        /usr/bin/codex-container.sh work
+        /usr/bin/codex-container.sh work "$@"
 }
 ```
 
 If `OPENAI_API_KEY` is set in your shell when you run the script, it's passed through to the container. Alternatively, run `codex` inside the container and log in with your ChatGPT account; the resulting credentials are written to the mounted `.codex-<env>` directory and persist across runs.
+
+#### Browser login and re-login
+
+To log in with your ChatGPT account, run:
+
+```shell
+codex-container.sh work login
+```
+
+Open the printed login URL in your host browser. For this command, the launcher automatically forwards host `127.0.0.1:1455` to a relay on container port `1456`, which connects to Codex's `127.0.0.1:1455` callback listener. A direct `1455:1455` mapping cannot reach the container's loopback listener. The forwarding lasts until the container exits, and credentials persist in `.codex-work`.
+
+To enable browser login from an interactive Codex session, start it with forwarding enabled:
+
+```shell
+CODEX_LOGIN_FORWARD=true codex-container.sh work
+```
+
+Ordinary runs do not reserve a host port. Only one container with login forwarding can run at a time; stop any other process using host port `1455` before starting it. Forwarding binds only to the host's IPv4 loopback interface. If the container engine runs on a remote host, also tunnel the callback from your browser's machine with `ssh -L 1455:127.0.0.1:1455 user@remote` and run the login command in that SSH session.
+
+Alternatively, `codex-container.sh work login --device-auth` uses device code login without port forwarding, if enabled for your account or workspace. See the [official OpenAI authentication documentation](https://developers.openai.com/codex/auth/).
 
 ### The `.codex-<env>` directory
 
@@ -103,4 +123,3 @@ Two env vars, passed through from your shell if set, tune this per run:
 * `SKIP_FIREWALL=true` — disable the firewall entirely, e.g. for a quick debugging session.
 
 If a container engine or host doesn't grant `NET_ADMIN`/`NET_RAW` (some rootless Podman or restricted CI setups), `init-firewall.sh` will fail — use `SKIP_FIREWALL=true` in that case.
-
