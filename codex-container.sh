@@ -47,6 +47,16 @@ args=(
 	--workdir "/workspaces/$project_dir"
 )
 
+# Browser login listens on container loopback. Publish a separate relay port so
+# Codex can still bind localhost:1455 itself. Ordinary runs need no host port.
+login_forward="${CODEX_LOGIN_FORWARD:-false}"
+if [ "$#" = "1" ] && [ "$1" = "login" ]; then
+	login_forward=true
+fi
+if [ "$login_forward" = "true" ]; then
+	args+=(--publish 127.0.0.1:1455:1456 --env CODEX_LOGIN_FORWARD=true)
+fi
+
 if [ "$CONTAINER_ENGINE" = "podman" ]; then
 	if [ "$("$CONTAINER_ENGINE" info --format '{{.Host.Security.Rootless}}' 2>/dev/null)" = "true" ]; then
 		args+=(--userns=keep-id --user root:root)
@@ -55,6 +65,16 @@ fi
 
 if [ -n "$OPENAI_API_KEY" ]; then
 	args+=(--env OPENAI_API_KEY="$OPENAI_API_KEY")
+fi
+
+# Pass host timezone so timestamps inside container match host (default is UTC).
+host_tz="${TZ:-}"
+if [ -z "$host_tz" ] && [ -L /etc/localtime ]; then
+	host_tz="$(readlink /etc/localtime)"
+	host_tz="${host_tz#*zoneinfo/}"
+fi
+if [ -n "$host_tz" ]; then
+	args+=(--env TZ="$host_tz")
 fi
 
 # Escape hatch for callers that need extra engine flags (extra hosts, a shared
