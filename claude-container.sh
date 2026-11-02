@@ -53,6 +53,16 @@ if [ "$CONTAINER_ENGINE" = "podman" ]; then
 	fi
 fi
 
+# Pass host timezone so timestamps inside container match host (default is UTC).
+host_tz="${TZ:-}"
+if [ -z "$host_tz" ] && [ -L /etc/localtime ]; then
+	host_tz="$(readlink /etc/localtime)"
+	host_tz="${host_tz#*zoneinfo/}"
+fi
+if [ -n "$host_tz" ]; then
+	args+=(--env TZ="$host_tz")
+fi
+
 # Escape hatch for callers that need extra engine flags (extra hosts, a shared
 # network, additional mounts) without this script knowing about their project.
 if [ -n "$CONTAINER_EXTRA_ARGS" ]; then

@@ -29,6 +29,11 @@ iptables -A INPUT -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A OUTPUT -o lo -j ACCEPT
 
+# The launcher publishes this relay only on the host's loopback interface.
+if [ "${CODEX_LOGIN_FORWARD:-false}" = "true" ]; then
+	iptables -A INPUT -p tcp --dport 1456 -j ACCEPT
+fi
+
 ipset create allowed-domains hash:net
 
 echo "Fetching GitHub IP ranges..."
