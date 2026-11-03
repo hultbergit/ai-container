@@ -11,6 +11,16 @@ fi
 env_file="$1"
 shift
 
+# Strip our own flags before the rest is handed to claude.
+claude_args=()
+for arg in "$@"; do
+	case "$arg" in
+	--firewall-debug) FIREWALL_DEBUG=true ;;
+	*) claude_args+=("$arg") ;;
+	esac
+done
+set -- "${claude_args[@]}"
+
 env_dir="$HOME/.claude-$env_file"
 if [ ! -d "$env_dir" ]; then
 	echo "Missing env dir: $env_dir" >&2
@@ -98,6 +108,14 @@ fi
 
 if [ -n "$SKIP_FIREWALL" ]; then
 	args+=(--env SKIP_FIREWALL="$SKIP_FIREWALL")
+fi
+
+if [ -n "$FIREWALL_DEBUG" ]; then
+	args+=(--env FIREWALL_DEBUG="$FIREWALL_DEBUG")
+fi
+
+if [ -n "$SKIP_UPDATE_CHECK" ]; then
+	args+=(--env SKIP_UPDATE_CHECK="$SKIP_UPDATE_CHECK")
 fi
 
 if [ -n "$EXTRA_ALLOWED_DOMAINS" ]; then

@@ -59,6 +59,14 @@ RUN ARCH=$(dpkg --print-architecture) \
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 ENV CLAUDE_CONFIG_DIR=/home/node/.claude
+# The global npm prefix is root-owned and claude runs as the host uid, so the
+# built-in auto-updater can't write there. The container is --rm anyway, so an
+# in-place update would be lost on the next run. Update via bin/rebuild instead;
+# docker/check-update.sh records new releases at startup and a SessionStart
+# hook (docker/update-notice-hook.sh) shows the notice inside Claude Code.
+ENV DISABLE_AUTOUPDATER=1
+# Exposed so check-update.sh can skip the notice for pinned builds.
+ENV CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}
 # gosu runs as the host uid, which has no passwd entry, so HOME ends up as "/".
 # Claude's update check shells out to `npm view`, which dies without a writable cache.
 ENV NPM_CONFIG_CACHE=/tmp/npm-cache
@@ -77,7 +85,10 @@ RUN mkdir -p /home/node/.claude \
 ENV ALLOWED_DOMAINS="registry.npmjs.org api.anthropic.com statsig.com sentry.io github.com api.github.com objects.githubusercontent.com raw.githubusercontent.com"
 COPY docker/init-firewall.sh /usr/local/bin/init-firewall.sh
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/init-firewall.sh /usr/local/bin/entrypoint.sh
+COPY docker/check-update.sh /usr/local/bin/check-update.sh
+COPY docker/update-notice-hook.sh /usr/local/bin/update-notice-hook.sh
+COPY docker/claude-settings.json /etc/claude-container/settings.json
+RUN chmod +x /usr/local/bin/init-firewall.sh /usr/local/bin/entrypoint.sh /usr/local/bin/check-update.sh /usr/local/bin/update-notice-hook.sh
 
 WORKDIR /workspaces
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

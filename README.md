@@ -17,7 +17,7 @@ This repo includes `Containerfile.claude`, which installs the `@anthropic-ai/cla
 $ docker build -t claude-code:latest -f Containerfile.claude .
 ```
 
-To pick up new CLI releases later, run `bin/rebuild` — it rebuilds both `claude-code:latest` and `codex:latest` with `--pull --no-cache` (pass `claude` or `codex` to rebuild just one; honors `CONTAINER_ENGINE`).
+To pick up new CLI releases later, run `bin/rebuild` — it rebuilds both `claude-code:latest` and `codex:latest` with `--pull --no-cache` (pass `claude` or `codex` to rebuild just one; honors `CONTAINER_ENGINE`). Claude Code's built-in auto-updater is disabled in the image (`DISABLE_AUTOUPDATER=1`): the npm global prefix isn't writable by the host uid, and containers are `--rm`, so in-place updates couldn't stick anyway. Instead, each `claude` start checks the npm registry (3s timeout, failures ignored) and records any newer release; a `SessionStart` hook (loaded via `--settings /etc/claude-container/settings.json`, layered on top of your own settings) then shows the notice with the `bin/rebuild claude` command inside the Claude Code UI. Set `SKIP_UPDATE_CHECK=true` to silence it; images built with a pinned `CLAUDE_CODE_VERSION` skip the check.
 
 Alternatively, Anthropic maintains their own Containerfile for Claude Code, used for their VS Code extension. Clone `git@github.com:anthropics/claude-code.git`, enter the `.devcontainer` directory, and build from there instead if you'd rather track theirs directly (it also adds zsh and other niceties not included here):
 

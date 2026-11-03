@@ -1,0 +1,15 @@
+{
+	"hooks": {
+		"SessionStart": [
+			{
+				"matcher": "startup",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "/usr/local/bin/update-notice-hook.sh"
+					}
+				]
+			}
+		]
+	}
+}
