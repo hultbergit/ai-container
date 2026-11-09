@@ -1,11 +1,8 @@
 FROM node:26-slim
 
-ARG GIT_DELTA_VERSION=0.20.1
-ARG GIT_DELTA_SHA256_AMD64=0683067a4cbbcc19b9fd2841253131d1b37ccfa724725098d811d4d0d9fcc25b
-ARG GIT_DELTA_SHA256_ARM64=6e08b734d611037eb9eb5db883cab7ac0a089216a9efdc1d2caac44319029c28
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	git \
+	git-delta \
 	gnupg \
 	ca-certificates \
 	curl \
@@ -29,19 +26,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
 	&& apt-get update && apt-get install -y --no-install-recommends gh \
 	&& rm -rf /var/lib/apt/lists/*
-
-# git-delta isn't packaged for Debian until trixie; grab the upstream .deb instead.
-RUN ARCH=$(dpkg --print-architecture) \
-	&& case "$ARCH" in \
-		amd64) SHA256="$GIT_DELTA_SHA256_AMD64" ;; \
-		arm64) SHA256="$GIT_DELTA_SHA256_ARM64" ;; \
-		*) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;; \
-	esac \
-	&& DEB="git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" \
-	&& curl -fsSLO "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/${DEB}" \
-	&& echo "${SHA256}  ${DEB}" | sha256sum -c - \
-	&& dpkg -i "$DEB" \
-	&& rm "$DEB"
 
 RUN npm install -g @openai/codex
 
