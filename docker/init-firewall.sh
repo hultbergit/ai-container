@@ -70,7 +70,12 @@ IFS=' ' read -ra domains <<<"${ALLOWED_DOMAINS:-} ${EXTRA_ALLOWED_DOMAINS:-}"
 for domain in "${domains[@]}"; do
 	[ -n "$domain" ] || continue
 	echo "Resolving $domain..."
-	ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
+	# getent too: dig asks DNS only, and a name from --add-host
+	# (host.containers.internal, say) is in /etc/hosts alone.
+	ips=$({
+		dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}'
+		getent ahostsv4 "$domain" | awk '{print $1}'
+	} | sort -u)
 	if [ -z "$ips" ]; then
 		echo "WARNING: failed to resolve $domain, skipping" >&2
 		continue
